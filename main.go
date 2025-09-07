@@ -11,18 +11,15 @@ import (
 )
 
 func connectToOpenAI() (*websocket.Conn, error) {
-	// Load .env file
 	err := godotenv.Load()
 	if err != nil {
 		log.Println("No .env file found, using system environment variables")
 	}
-	
+
 	var (
 		OpenAIKey = os.Getenv("OPENAI_KEY")
 		OpenAIURL = os.Getenv("OPENAI_URL")
 	)
-	fmt.Println("Using OpenAI Key:", OpenAIKey)
-	fmt.Println("Using OpenAI URL:", OpenAIURL)
 	header := http.Header{
 		"Authorization": []string{"Bearer " + OpenAIKey},
 		"OpenAI-Beta":   []string{"realtime=v1"},
@@ -32,7 +29,6 @@ func connectToOpenAI() (*websocket.Conn, error) {
 }
 
 func setSessionconfig(conn *websocket.Conn) error {
-	// map between string and any type (empty interface)
 	message := map[string]interface{}{
 		"type": "session.update",
 		"session": map[string]interface{}{
@@ -75,12 +71,9 @@ func listenForResponseMessages(conn *websocket.Conn) {
 		switch eventType {
 		case "response.text.delta":
 			delta := message["delta"].(string)
-			fmt.Println(delta)
-			log.Print(delta)
+			fmt.Print(delta)
 		case "response.text.done":
-			log.Println()
-		default:
-			fmt.Printf("Unknown event: %s\n", eventType)
+			fmt.Println()
 		}
 	}
 }
@@ -93,6 +86,5 @@ func main() {
 	setSessionconfig(conn)
 	log.Println("Connected to OpenAI WebSocket")
 	sendMessage(conn, "Hi.")
-	log.Println("where is my poem?")
 	listenForResponseMessages(conn)
 }
