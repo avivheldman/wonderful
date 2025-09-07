@@ -13,6 +13,10 @@ import (
 
 var responseComplete = make(chan bool)
 
+func multiply(a, b float64) float64 {
+	return a * b
+}
+
 func connectToOpenAI() (*websocket.Conn, error) {
 	err := godotenv.Load()
 	if err != nil {
@@ -36,7 +40,29 @@ func setSessionconfig(conn *websocket.Conn) error {
 		"type": "session.update",
 		"session": map[string]interface{}{
 			"modalities":   []string{"text"},
-			"instructions": "Be extra nice today!",
+			"instructions": "You are a helpful assistant. When asked to multiply numbers, use the multiply function.",
+			"tools": []map[string]interface{}{
+				{
+					"type":        "function",
+					"name":        "multiply",
+					"description": "Multiplies two numbers and returns the result",
+					"parameters": map[string]interface{}{
+						"type": "object",
+						"properties": map[string]interface{}{
+							"a": map[string]interface{}{
+								"type":        "number",
+								"description": "First number to multiply",
+							},
+							"b": map[string]interface{}{
+								"type":        "number",
+								"description": "Second number to multiply",
+							},
+						},
+						"required": []string{"a", "b"},
+					},
+				},
+			},
+			"tool_choice": "auto",
 		},
 	}
 	return conn.WriteJSON(message)
