@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,6 +10,8 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
 )
+
+var responseComplete = make(chan bool)
 
 func connectToOpenAI() (*websocket.Conn, error) {
 	err := godotenv.Load()
@@ -74,6 +77,7 @@ func listenForResponseMessages(conn *websocket.Conn) {
 			fmt.Print(delta)
 		case "response.text.done":
 			fmt.Println()
+			responseComplete <- true
 		}
 	}
 }
@@ -85,6 +89,21 @@ func main() {
 	defer conn.Close()
 	setSessionconfig(conn)
 	log.Println("Connected to OpenAI WebSocket")
-	sendMessage(conn, "Hi.")
-	listenForResponseMessages(conn)
+	scanner := bufio.NewScanner(os.Stdin)
+	go listenForResponseMessages(conn)
+	for {
+		fmt.Print("\nYou:")
+		if !scanner.Scan() {
+			break
+		}
+		input := scanner.Text()
+		if input == "exit" {
+			break
+		}
+		fmt.Print("\nAI:")
+		sendMessage(conn, input)
+		<-responseComplete
+
+	}
+
 }
