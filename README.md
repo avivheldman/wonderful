@@ -8,7 +8,6 @@ A Command Line Interface (CLI) tool in Go that interacts with OpenAI's GPT-4o-re
 - ✅ **Streaming responses** - characters appear as they're generated (like ChatGPT)
 - ✅ **Interactive chat interface** - continuous conversation with proper formatting
 - ✅ **Function calling support** - multiply two numbers using AI function calls
-- ✅ **Clean goroutine management** - proper cleanup and shutdown
 - ✅ **Environment variable configuration** - secure API key handling
 
 ## Requirements
@@ -37,22 +36,6 @@ A Command Line Interface (CLI) tool in Go that interacts with OpenAI's GPT-4o-re
    OPENAI_KEY=your_openai_api_key_here
    OPENAI_URL=wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01
    ```
-
-   **Or set environment variables directly:**
-   ```bash
-   # Windows (Command Prompt)
-   set OPENAI_KEY=your_key_here
-   set OPENAI_URL=wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01
-   
-   # Windows (PowerShell)
-   $env:OPENAI_KEY="your_key_here"
-   $env:OPENAI_URL="wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01"
-   
-   # Linux/Mac/Git Bash
-   export OPENAI_KEY="your_key_here"
-   export OPENAI_URL="wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01"
-   ```
-
 ## Getting Your OpenAI API Key
 
 1. Visit [OpenAI Platform](https://platform.openai.com/account/api-keys)
@@ -124,7 +107,7 @@ When the AI detects a multiplication request, it automatically calls the `multip
 
 ```
 Main Goroutine                    Listener Goroutine
-│                                 │
+│                                │
 ├─ Connect to OpenAI             │
 ├─ Start listener ──────────────►├─ Listen for messages
 ├─ User input loop               ├─ Stream text responses  
@@ -147,36 +130,3 @@ Main Goroutine                    Listener Goroutine
 
 - **[gorilla/websocket](https://github.com/gorilla/websocket)** - WebSocket client
 - **[joho/godotenv](https://github.com/joho/godotenv)** - Environment variable loading
-
-## Troubleshooting
-
-### Connection Issues
-- Verify your API key is correct and has Realtime API access
-- Check your internet connection
-- Ensure the API URL is correct
-
-### Function Calling Not Working
-- Make sure session configuration includes the tools
-- Check that OpenAI detects multiplication requests in your messages
-- Verify function arguments are valid numbers
-
-### Build Issues
-- Ensure Go 1.19+ is installed: `go version`
-- Run `go mod tidy` to install dependencies
-- Check that all imports are available
-
-## Assignment Requirements ✅
-
-This implementation fulfills all requirements:
-
-- ✅ **CLI Interaction with GPT-4o-mini** - Real-time WebSocket communication
-- ✅ **Streaming Responses** - Incremental display using Go concurrency
-- ✅ **Function Calling Support** - Multiply function with proper execution
-- ✅ **Go Programming Language** - Built entirely in Go
-- ✅ **Maintainable Code Structure** - Clean separation of concerns
-- ✅ **Error Handling** - Graceful handling of failures
-- ✅ **Documentation** - Complete README with usage instructions
-
-## License
-
-MIT License - see LICENSE file for details.

@@ -89,11 +89,9 @@ func listenForResponseMessages(conn *websocket.Conn, done chan bool) {
 	for {
 		select {
 		case <-done:
-			// Received shutdown signal
 			log.Println("Shutting down message listener...")
 			return
 		default:
-			// Check for new messages
 			var message map[string]interface{}
 			err := conn.ReadJSON(&message)
 			if err != nil {
@@ -164,7 +162,6 @@ func main() {
 		log.Fatal("Error connecting to OpenAI:", err)
 	}
 	defer conn.Close()
-
 	setSessionconfig(conn)
 	log.Println("Connected to OpenAI WebSocket")
 	done := make(chan bool)
@@ -189,7 +186,6 @@ func main() {
 		<-responseComplete
 	}
 
-	// Clean shutdown
-	fmt.Println("\n👋 Goodbye!")
-	done <- true // Signal goroutine to stop
+	fmt.Println("\n Goodbye!")
+	done <- true
 }
