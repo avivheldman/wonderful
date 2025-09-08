@@ -85,24 +85,32 @@ func sendMessage(conn *websocket.Conn, content string) error {
 	return conn.WriteJSON(responseMsg)
 }
 
-func listenForResponseMessages(conn *websocket.Conn) {
+func listenForResponseMessages(conn *websocket.Conn, done chan bool) {
 	for {
-		var message map[string]interface{}
-		err := conn.ReadJSON(&message)
-		if err != nil {
-			log.Println("Error reading message:", err)
-			break
-		}
-		eventType := message["type"].(string)
-		switch eventType {
-		case "response.text.delta":
-			delta := message["delta"].(string)
-			fmt.Print(delta)
-		case "response.text.done":
-			fmt.Println()
-			responseComplete <- true
-		case "response.function_call_arguments.done":
-			handleFunctionCall(conn, message)
+		select {
+		case <-done:
+			// Received shutdown signal
+			log.Println("Shutting down message listener...")
+			return
+		default:
+			// Check for new messages
+			var message map[string]interface{}
+			err := conn.ReadJSON(&message)
+			if err != nil {
+				log.Println("Error reading message:", err)
+				return
+			}
+			eventType := message["type"].(string)
+			switch eventType {
+			case "response.text.delta":
+				delta := message["delta"].(string)
+				fmt.Print(delta)
+			case "response.text.done":
+				fmt.Println()
+				responseComplete <- true
+			case "response.function_call_arguments.done":
+				handleFunctionCall(conn, message)
+			}
 		}
 	}
 }
@@ -156,23 +164,32 @@ func main() {
 		log.Fatal("Error connecting to OpenAI:", err)
 	}
 	defer conn.Close()
+
 	setSessionconfig(conn)
 	log.Println("Connected to OpenAI WebSocket")
+	done := make(chan bool)
+	go listenForResponseMessages(conn, done)
+
 	scanner := bufio.NewScanner(os.Stdin)
-	go listenForResponseMessages(conn)
 	for {
-		fmt.Print("\nYou:")
+		fmt.Print("\nYou: ")
 		if !scanner.Scan() {
 			break
 		}
 		input := scanner.Text()
-		if input == "exit" {
+		if input == "exit" || input == "quit" {
 			break
 		}
-		fmt.Print("\nAI:")
+		if input == "" {
+			continue
+		}
+
+		fmt.Print("AI: ")
 		sendMessage(conn, input)
 		<-responseComplete
-
 	}
 
+	// Clean shutdown
+	fmt.Println("\n👋 Goodbye!")
+	done <- true // Signal goroutine to stop
 }
