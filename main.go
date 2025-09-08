@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,10 +13,6 @@ import (
 )
 
 var responseComplete = make(chan bool)
-
-func multiply(a, b float64) float64 {
-	return a * b
-}
 
 func connectToOpenAI() (*websocket.Conn, error) {
 	err := godotenv.Load()
@@ -104,9 +101,55 @@ func listenForResponseMessages(conn *websocket.Conn) {
 		case "response.text.done":
 			fmt.Println()
 			responseComplete <- true
+		case "response.function_call_arguments.done":
+			handleFunctionCall(conn, message)
 		}
 	}
 }
+
+func multiply(a float64, b float64) float64 {
+	return a * b
+}
+
+func handleFunctionCall(conn *websocket.Conn, message map[string]interface{}) {
+	callID := message["call_id"].(string)
+	functionName := message["name"].(string)
+	argumentsJSON := message["arguments"].(string)
+
+	fmt.Printf("\n[Calling function: %s with args: %s]\n", functionName, argumentsJSON)
+
+	var args map[string]float64
+	if err := json.Unmarshal([]byte(argumentsJSON), &args); err != nil {
+		fmt.Printf("Error parsing arguments: %v\n", err)
+		return
+	}
+
+	var result float64
+	if functionName == "multiply" {
+		result = multiply(args["a"], args["b"])
+		fmt.Printf("Result: %.2f\n", result)
+	}
+
+	functionOutput := map[string]interface{}{
+		"type": "conversation.item.create",
+		"item": map[string]interface{}{
+			"type":    "function_call_output",
+			"call_id": callID,
+			"output":  fmt.Sprintf("%.2f", result),
+		},
+	}
+
+	if err := conn.WriteJSON(functionOutput); err != nil {
+		fmt.Printf("Error sending function result: %v\n", err)
+		return
+	}
+
+	responseMsg := map[string]interface{}{
+		"type": "response.create",
+	}
+	conn.WriteJSON(responseMsg)
+}
+
 func main() {
 	conn, err := connectToOpenAI()
 	if err != nil {
